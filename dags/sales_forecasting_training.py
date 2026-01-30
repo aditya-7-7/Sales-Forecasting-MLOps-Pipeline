@@ -37,9 +37,15 @@ def sales_forecast_training():
     def extract_data_task():
         from utils.data_generator import RealisticSalesDataGenerator    
         
+        from datetime import datetime, timedelta
+        
+        # Dynamic date range: last 2 years from current date
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
+        
         data_output_dir = "/tmp/sales_data"
         generator = RealisticSalesDataGenerator(
-            start_date="2021-01-01", end_date="2021-12-31"
+            start_date=start_date, end_date=end_date
         )
         
         print("Generating realistic sales data...")

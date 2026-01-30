@@ -60,6 +60,27 @@ class FeatureEngineer:
         logger.info(f"Created {len(lag_values)} lag features")
         return df
     
+    def create_financial_lag_features(self, df: pd.DataFrame, 
+                                       group_cols: Optional[List[str]] = None) -> pd.DataFrame:
+        """Create lag features for financial columns (profit, cost, revenue) to prevent data leakage.
+        
+        These columns are derived from sales (target), so same-day values cause data leakage.
+        Using lagged versions allows the model to use historical financial patterns.
+        """
+        df = df.copy()
+        financial_cols = ['profit', 'cost', 'revenue']
+        lag_values = [1, 7, 14, 30, 60, 90, 365]  # Support up to 90-day forecasting + yearly seasonality
+        
+        for col in financial_cols:
+            if col in df.columns:
+                for lag in lag_values:
+                    if group_cols:
+                        df[f'{col}_lag_{lag}'] = df.groupby(group_cols)[col].shift(lag)
+                    else:
+                        df[f'{col}_lag_{lag}'] = df[col].shift(lag)
+        
+        logger.info(f"Created financial lag features for {financial_cols}")
+        return df
     def create_rolling_features(self, df: pd.DataFrame, target_col: str,
                                group_cols: Optional[List[str]] = None) -> pd.DataFrame:
         df = df.copy()
@@ -129,6 +150,9 @@ class FeatureEngineer:
         
         # Create rolling features
         df = self.create_rolling_features(df, target_col, group_cols)
+        
+        # Create financial lag features (profit, cost, revenue) to prevent data leakage
+        df = self.create_financial_lag_features(df, group_cols)
         
         # Create cyclical features
         df = self.create_cyclical_features(df, date_col)

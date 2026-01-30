@@ -15,7 +15,7 @@ services:
       - airflow
       - default
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live' ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -28,12 +28,7 @@ services:
       minio:
         condition: service_healthy
     entrypoint: >
-      /bin/sh -c "
-      mc alias set myminio http://minio:9000 minioadmin minioadmin;
-      mc mb myminio/mlflow-artifacts || true;
-      mc anonymous set public myminio/mlflow-artifacts;
-      exit 0;
-      "
+      /bin/sh -c " mc alias set myminio http://minio:9000 minioadmin minioadmin; mc mb myminio/mlflow-artifacts || true; mc anonymous set public myminio/mlflow-artifacts; exit 0; "
 
   # MLflow tracking server
   mlflow:
@@ -64,7 +59,7 @@ services:
     volumes:
       - mlflow-db-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD', 'pg_isready', '-U', 'mlflow']
+      test: [ 'CMD', 'pg_isready', '-U', 'mlflow' ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -74,18 +69,11 @@ services:
     restart: unless-stopped
 
   # Streamlit UI for model inference
-  # Streamlit UI for model inference
   streamlit-ui:
     image: python:3.11-slim
-    platform: linux/arm64
     working_dir: /app
     command: >
-      bash -c "
-      apt-get update && apt-get install -y libgomp1 build-essential cmake &&
-      pip install --no-cache-dir streamlit==1.29.0 pandas==2.1.4 numpy==1.24.3 scikit-learn==1.3.2 matplotlib==3.8.2 seaborn==0.13.0 plotly==5.18.0 mlflow==2.9.2 boto3==1.34.14 lightgbm==4.2.0 catboost==1.2.2 xgboost==2.0.3 &&
-      chmod +x /app/entrypoint.sh &&
-      /app/entrypoint.sh
-      "
+      bash -c " apt-get update && apt-get install -y libgomp1 build-essential cmake curl && pip install --no-cache-dir streamlit==1.29.0 pandas==2.1.4 numpy==1.24.3 scikit-learn==1.3.2 matplotlib==3.8.2 seaborn==0.13.0 plotly==5.18.0 mlflow==2.9.2 boto3==1.34.14 lightgbm==4.2.0 xgboost==2.0.3 joblib dill python-dateutil && streamlit run inference_app.py --server.address 0.0.0.0 --server.port 8501 "
     ports:
       - '8501:8501'
     environment:
@@ -101,14 +89,21 @@ services:
       - mlflow
       - minio
     restart: unless-stopped
+    networks:
+      - airflow
+      - default
 
 volumes:
   minio-data:
   mlflow-db-volume:
 
+    # Network configuration - uses Astro's dynamically created network
+    # The network name is generated as: {project_name}_{hash}_airflow
+    # We'll detect it at runtime instead of hardcoding
 networks:
   airflow:
     external: true
-    name: sales-forecasting-pipeline_fd0ccc_airflow
+    # This will be set by the startup script after astro dev start creates the network
+    name: ${AIRFLOW_NETWORK:-sales-forecasting-pipeline_airflow}
   default:
-    name: sales-forecasting-pipeline_fd0ccc_default
+    driver: bridge

@@ -26,6 +26,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# Minimal CSS - just reduce padding
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 1rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Initialize session state
 if 'model_loader' not in st.session_state:
     st.session_state.model_loader = SimpleModelLoader()
@@ -215,73 +224,62 @@ if st.session_state.models_loaded:
                     if results['success']:
                         st.success("✅ Forecast generated successfully!")
                         
-                        # Show metrics
+                        # Forecast Summary - matching tutorial layout
                         st.markdown("### 📈 Forecast Summary")
+                        
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric(
-                                "Total Forecast",
-                                f"${results['summary']['total_predicted_sales']:,.0f}"
-                            )
+                            st.markdown("**Total Forecast**")
+                            st.markdown(f"### ${results['summary']['total_predicted_sales']:,.0f}")
                         with col2:
-                            st.metric(
-                                "Daily Average",
-                                f"${results['summary']['average_daily_sales']:,.0f}"
-                            )
+                            st.markdown("**Daily Average**")
+                            st.markdown(f"### ${results['summary']['average_daily_sales']:,.0f}")
                         with col3:
-                            st.metric(
-                                "Forecast Period",
-                                f"{forecast_days} days"
-                            )
+                            st.markdown("**Forecast Period**")
+                            st.markdown(f"### {forecast_days} days")
                         with col4:
-                            st.metric(
-                                "Model Used",
-                                model_type.upper()
-                            )
+                            st.markdown("**Model Used**")
+                            st.markdown(f"### {model_type.upper()}")
                         
                         # Visualization
                         st.markdown("### 📊 Forecast Visualization")
                         
                         predictions_df = results['predictions']
-                        historical_mask = predictions_df.index < len(input_data)
                         
                         fig = go.Figure()
                         
-                        # Historical data
+                        # Upper Bound line
                         fig.add_trace(go.Scatter(
-                            x=predictions_df[historical_mask]['date'],
-                            y=input_data['sales'],
+                            x=predictions_df['date'],
+                            y=predictions_df['upper_bound'],
                             mode='lines',
-                            name='Historical',
-                            line=dict(color='blue', width=2)
+                            line=dict(color='rgba(0, 200, 0, 0.5)', width=1),
+                            name='Upper Bound',
+                            showlegend=True,
+                            hovertemplate='Upper Bound: $%{y:,.0f}<extra></extra>'
                         ))
                         
-                        # Forecast
+                        # Lower Bound with fill
                         fig.add_trace(go.Scatter(
-                            x=predictions_df[~historical_mask]['date'],
-                            y=predictions_df[~historical_mask]['predicted_sales'],
+                            x=predictions_df['date'],
+                            y=predictions_df['lower_bound'],
+                            mode='lines',
+                            line=dict(color='rgba(0, 200, 0, 0.5)', width=1),
+                            fill='tonexty',
+                            fillcolor='rgba(0, 200, 0, 0.2)',
+                            name='Lower Bound',
+                            showlegend=True,
+                            hovertemplate='Lower Bound: $%{y:,.0f}<extra></extra>'
+                        ))
+                        
+                        # Forecast line (main green line)
+                        fig.add_trace(go.Scatter(
+                            x=predictions_df['date'],
+                            y=predictions_df['predicted_sales'],
                             mode='lines',
                             name='Forecast',
-                            line=dict(color='green', width=3)
-                        ))
-                        
-                        # Confidence interval
-                        fig.add_trace(go.Scatter(
-                            x=predictions_df[~historical_mask]['date'],
-                            y=predictions_df[~historical_mask]['upper_bound'],
-                            fill=None,
-                            mode='lines',
-                            line_color='rgba(0,255,0,0)',
-                            showlegend=False
-                        ))
-                        
-                        fig.add_trace(go.Scatter(
-                            x=predictions_df[~historical_mask]['date'],
-                            y=predictions_df[~historical_mask]['lower_bound'],
-                            fill='tonexty',
-                            mode='lines',
-                            line_color='rgba(0,255,0,0.2)',
-                            name='95% Confidence'
+                            line=dict(color='rgb(0, 200, 0)', width=3),
+                            hovertemplate='Forecast: $%{y:,.0f}<extra></extra>'
                         ))
                         
                         fig.update_layout(
@@ -290,7 +288,18 @@ if st.session_state.models_loaded:
                             yaxis_title="Sales ($)",
                             hovermode='x unified',
                             height=500,
-                            showlegend=True
+                            showlegend=True,
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="right",
+                                x=1
+                            ),
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            xaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
+                            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)')
                         )
                         
                         st.plotly_chart(fig, use_container_width=True)
@@ -298,22 +307,29 @@ if st.session_state.models_loaded:
                         # Download section
                         st.markdown("### 💾 Export Results")
                         
-                        col1, col2 = st.columns(2)
+                        # Store export data in session state to ensure it persists
+                        export_df = predictions_df.copy()
+                        export_df = export_df.round(2)
+                        st.session_state['export_data'] = export_df
+                        
+                        col1, col2 = st.columns([1, 2])
                         with col1:
-                            # Prepare download data
-                            export_df = predictions_df[~historical_mask].copy()
-                            export_df = export_df.round(2)
-                            
                             csv = export_df.to_csv(index=False)
                             st.download_button(
                                 label="📥 Download Forecast (CSV)",
                                 data=csv,
                                 file_name=f"sales_forecast_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                mime="text/csv"
+                                mime="text/csv",
+                                key="download_csv",
+                                use_container_width=True
                             )
                         
                         with col2:
-                            st.info("Forecast includes predictions with confidence intervals")
+                            st.info(f"📊 {len(export_df)} days of forecast data ready for download")
+                        
+                        # Full-width data preview
+                        with st.expander("📋 Preview Export Data", expanded=False):
+                            st.dataframe(export_df, use_container_width=True, height=400)
                     
                     else:
                         st.error(f"❌ Prediction failed: {results['error']}")

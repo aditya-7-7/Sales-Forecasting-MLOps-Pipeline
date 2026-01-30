@@ -6,17 +6,23 @@ mlflow:
 models:
   xgboost:
     params:
-      n_estimators: 100
-      max_depth: 6
-      learning_rate: 0.1
+      n_estimators: 300        # Increased from 100
+      max_depth: 8             # Increased from 6
+      learning_rate: 0.05      # Decreased for better generalization
+      min_child_weight: 3      # Regularization
+      subsample: 0.8           # Prevents overfitting
+      colsample_bytree: 0.8    # Feature sampling
       objective: "reg:squarederror"
       random_state: 42
 
   lightgbm:
     params:
-      num_leaves: 31
-      n_estimators: 100
-      learning_rate: 0.05
+      num_leaves: 63           # Increased from 31
+      n_estimators: 300        # Increased from 100
+      learning_rate: 0.03      # Decreased from 0.05
+      min_child_samples: 20    # Regularization
+      subsample: 0.8           # Prevents overfitting
+      colsample_bytree: 0.8    # Feature sampling
       objective: "regression"
       random_state: 42
 
@@ -49,7 +55,11 @@ features:
     - 7
     - 14
     - 21
+    - 28       # 4 weeks
     - 30
+    - 60       # 2 months
+    - 90       # 3 months
+    - 365      # Same day last year (seasonality!)
 
   rolling_features:
     windows: [3, 6, 14, 21, 30]
@@ -88,7 +98,7 @@ training:
 # Inference Configuration
 inference:
   batch_size: 1000
-  prediction_horizon: 30  # days
+  prediction_horizon: 90  # days (supports 1-90 day forecasting)
   confidence_intervals: [0.8, 0.95]
 
 # Monitoring Configuration

@@ -12,7 +12,12 @@ logger = logging.getLogger(__name__)
 class RealisticSalesDataGenerator:
     """Generate realistic sales data with multiple files, partitions, and business patterns"""
     
-    def __init__(self, start_date = "2021-01-01", end_date = "2021-12-31"):
+    def __init__(self, start_date=None, end_date=None):
+        # Dynamic date range: default to last 2 years from current date
+        if end_date is None:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
         self.start_date = pd.to_datetime(start_date)
         self.end_date = pd.to_datetime(end_date)
         self.us_holidays = holidays.US()

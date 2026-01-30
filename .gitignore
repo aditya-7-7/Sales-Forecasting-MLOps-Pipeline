@@ -1,11 +1,55 @@
+# Git
 .git
+
+# Environment
 .env
-.DS_Store
-airflow_settings.yaml
-__pycache__/
-astro
 .venv
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Airflow
+airflow_settings.yaml
 airflow-webserver.pid
 webserver_config.py
 airflow.cfg
 airflow.db
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Astro
+astro
+.astro/
+
+# Docker volumes (not tracked)
+minio-data/
+mlflow-db-volume/
+
+# Test/Sample data (keep for reference but can be regenerated)
+# Uncomment these if you don't want to track test data:
+# test_dataset.csv
+# test_dataset_v2.csv
+# sample_sales_data.csv
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak

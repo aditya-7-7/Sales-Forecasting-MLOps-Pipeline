@@ -82,7 +82,7 @@ class ModelTrainer:
     
     def preprocess_features(self, train_df: pd.DataFrame, val_df: pd.DataFrame, 
                            test_df: pd.DataFrame, target_col: str,
-                           exclude_cols: List[str] = ['date']):
+                           exclude_cols: List[str] = ['date', 'profit', 'cost', 'revenue']):
         logger.info("Preprocessing features")
         # Separate features and target
         feature_cols = [col for col in train_df.columns if col not in exclude_cols + [target_col]]
