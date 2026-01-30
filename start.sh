@@ -29,7 +29,7 @@ echo "✅ Found Airflow network: $AIRFLOW_NETWORK"
 export AIRFLOW_NETWORK=$AIRFLOW_NETWORK
 
 echo "📦 Starting MinIO, MLflow, and Streamlit services..."
-docker compose -f docker-compose.override.yml up -d
+docker compose -f docker-compose.services.yml up -d
 
 # Step 5: Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
